@@ -1,103 +1,70 @@
 "use strict";
 
 import React, { Component } from 'react'
+import axios from 'axios'
 import FilmItem from './FilmItem'
-import filmInfo from './FilmInfo'
+
 class App extends Component {
     constructor() {
         super();
         this.state = {
-            filmInfo: filmInfo,
-            films: filmInfo,
-            counter: filmInfo.length,
+            films: [],
+            filmsyoutube: [],
             title: "",
             year: "",
             grade: "",
-            disableChange: true,
-            disableAdd: false,
-            index: 0,
         };
-        this.addFilm = this.addFilm.bind(this);
-        this.deleteFilm = this.deleteFilm.bind(this);
-        this.changeFilm = this.changeFilm.bind(this);
-        this.changeFilmInfo = this.changeFilmInfo.bind(this);
-
         this.titleRef = React.createRef();
-        this.yearRef = React.createRef();
-        this.gradeRef = React.createRef();
+        this.searchFilmOrMusic = this.searchFilmOrMusic.bind(this);
+        this.fetchData = this.fetchData.bind(this);
     }
 
+    fetchData(search) {
+        const key = "AIzaSyC1udTFnckF2adJKPpU7m_-Fp4i7PQb1Pg";
+        const youtubeAPI = "https://www.googleapis.com/youtube/v3/search?q=" + search +
+            "&videoType=movie&part=snippet&maxResults=10&type=video&order=date&key=" + key;
+        const getYoutubeFilms = axios.get(youtubeAPI);
 
+        const omdbapi = "https://omdbapi.com/?s=" + search + "&page=1&apikey=6ab8345c"
+        const getOmdbapiFilms = axios.get(omdbapi);
 
-    addFilm(event) {
-        event.preventDefault();
-        if (this.titleRef.current.value !== "" && this.yearRef.current.value !== ""
-            && this.gradeRef.current.value !== "") {
-            const film =
-            {
-                key: this.state.counter,
-                title: this.titleRef.current.value,
-                year: this.yearRef.current.value,
-                grade: this.gradeRef.current.value,
-                id: this.state.counter
-            };
+        axios.all([getYoutubeFilms, getOmdbapiFilms]).then(
+            axios.spread((...allData) => {
+                this.setState(function (prevState) {
+                    return { counter: prevState.counter + 1 }
+                });
 
-            this.state.films.push(film);
-            this.setState(function (prevState) {
-                return { counter: prevState.counter + 1 }
-            });
-            this.newFilms = this.state.films.map(films => {
-                return <FilmItem key={films.key} title={films.title} id={films.id}
-                    year={films.year} grade={films.grade} deleteFilm={this.deleteFilm}
-                    changeFilm={this.changeFilm}
-                />
-            })
-            this.titleRef.current.value = ""
-            this.yearRef.current.value = ""
-            this.gradeRef.current.value = ""
-        }
-        else {
-            alert("You must write the film title, year and grade!");
-        }
-    }
+                // console.log(allData[0])
+                // console.log(allData[1])
 
-    deleteFilm(id) {
-        this.setState(function (prevFilms) {
-            return { films: prevFilms.films.filter((item) => item.id !== id) }
-        })
-        this.setState.disableChange = true;
-    }
+                this.state.filmsyoutube = allData[0].data.items.map(function (film) {
+                    return film
+                })
 
-    changeFilm(id) {
-        this.titleRef.current.value = this.state.films[id].title
-        this.yearRef.current.value = this.state.films[id].year
-        this.gradeRef.current.value = this.state.films[id].grade
-        this.setState(function () {
-            return { disableChange: false, disableAdd: true, index: id }
-        })
-    }
-
-    changeFilmInfo(event) {
-        event.preventDefault();
-
-        if (this.titleRef.current.value !== "" && this.yearRef.current.value !== ""
-            && this.gradeRef.current.value !== "") {
-            this.state.films[this.state.index].title = this.titleRef.current.value;
-            this.state.films[this.state.index].year = this.yearRef.current.value;
-            this.state.films[this.state.index].grade = this.gradeRef.current.value;
-
-            this.setState(function () {
-                return {
-                    disableChange: true,
-                    disableAdd: false
+                if (allData[1].data.Response === "True") {
+                    this.state.films = allData[1].data.Search.map(function (film) {
+                        return film
+                    })
+                }
+                else {
+                    this.state.films = [{ Title: "Movie not found!", Year: "0" }]
                 }
             })
-            this.titleRef.current.value = ""
-            this.yearRef.current.value = ""
-            this.gradeRef.current.value = ""
+        )
+    }
+
+
+    searchFilmOrMusic(event) {
+        event.preventDefault();
+        if (this.titleRef.current.value !== "") {
+            this.state.films = []
+            this.state.filmsyoutube = []
+            this.fetchData(this.titleRef.current.value);
+
+            this.titleRef.current.value = "";
         }
         else {
-            alert("Film title, year or grade should not empty!");
+            alert("You must write the film or music title!");
         }
     }
 
@@ -106,41 +73,36 @@ class App extends Component {
         return (
             <div className="container">
                 <div className="navbar bg-dark rounded text-white">
-                    <h2>Film Database</h2>
+                    <h2>Search films from OmdbAPI and YoutubeAPI:</h2>
                 </div>
                 <div >
                     <form action=''>
-                        <li className="list-group-item">
-                            <label htmlFor="title">Title:</label>
-                            <input type="text" name="title" maxLength={20} placeholder="Film title"
-                                ref={this.titleRef} required></input>
+                        <ul className='list-group'>
+                            <li className="list-group-item">
+                                <label htmlFor="title">Title:</label>
+                                <input type="text" name="title" maxLength={20}
+                                    placeholder="Film or Music title"
+                                    ref={this.titleRef} required></input>
+                                <button onClick={this.searchFilmOrMusic} >Search</button>
+                            </li>
+                        </ul>
 
-                            <label htmlFor="year">Year:</label>
-                            <input type="number" name="year" placeholder="1900" min={1900} max={2022}
-                                ref={this.yearRef} required></input>
-
-                            <label htmlFor="grade">Grade:</label>
-                            <input type="number" name="grade" placeholder="0" min={0} max={5}
-                                ref={this.gradeRef} required></input>
-
-                            <button className='float-right' onClick={this.addFilm}
-                                disabled={this.state.disableAdd} >Add film</button>
-                            <button className='float-right' onClick={this.changeFilmInfo}
-                                disabled={this.state.disableChange}>Change</button>
-                        </li>
                     </form>
                 </div>
-                <ul className='list-group'>
+                <div className="row">
                     {this.state.films.map(filmItem => <FilmItem
-                        key={filmItem.key}
-                        title={filmItem.title}
-                        id={filmItem.id}
-                        year={filmItem.year}
-                        grade={filmItem.grade}
-                        deleteFilm={this.deleteFilm}
-                        changeFilm={this.changeFilm}
+                        title={filmItem.Title}
+                        year={filmItem.Year}
+                        img={filmItem.Poster}
+                        type={"Omdbapi"}
                     />)}
-                </ul>
+                    {this.state.filmsyoutube.map(filmItem => <FilmItem
+                        title={filmItem.snippet.title}
+                        year={filmItem.snippet.publishedAt}
+                        img={filmItem.snippet.thumbnails.high.url}
+                        type={"Youtube"}
+                    />)}
+                </div>
             </div>
         )
     }

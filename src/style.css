@@ -1,6 +1,7 @@
 body {
     background-color: lightcyan;
     font-family: Verdana, Geneva, Tahoma, sans-serif;
+    
 }
 
 .container {
@@ -17,14 +18,13 @@ label {
 
 input[type='text'],
 [type='number'] {
-    margin-left: 5px;
+    margin-left: 15px;
     margin-right: 10px;
-    width: 20%;
+    width: 75%;
     border-radius: 8px;
 }
 
 button {
-    border-radius: 8px;
     width: 90px;
-    margin-right: 5px;
+    float: right;
 }
